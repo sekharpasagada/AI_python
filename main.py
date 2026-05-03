@@ -3,8 +3,13 @@ import sys
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
-from functions.get_files_info import get_files_info
-from functions.get_file_content import get_file_content
+import call_function
+from functions.get_files_info import get_files_info,schema_get_files_info
+from functions.get_file_content import get_file_content,schema_get_file_content
+from functions.write_file import write_file,schema_write_file
+from functions.run_python_file import run_python_file,schema_run_python_file
+from prompts import system_prompt
+from call_function import call_function
 def main():
     # Load environment variables from .env file
     load_dotenv()
@@ -34,18 +39,45 @@ def main():
         
     prompt = sys.argv[1];    
 
+    available_functions = types.Tool( function_declarations=[schema_get_files_info, schema_get_file_content, schema_write_file, schema_run_python_file],)
+        
+
     messages = [
         types.Content(role="user", parts=[types.Part(text=prompt)]),
         ]
-    response = client.models.generate_content(model="gemini-2.5-flash-lite", contents=messages)
+    config=types.GenerateContentConfig(system_instruction=system_prompt,tools=[available_functions])
+    response = client.models.generate_content(model="gemini-2.5-flash-lite", contents=messages,config=config, )
 
 
-    print(response.text)
+    
+
+
+    if response.function_calls:
+        print("Function calls made by the model:")
+        for call in response.function_calls:
+          result = call_function(call, verbose)
+          print(f"Result of {call.name}: {result}")
+    else:
+        print("No function calls were made by the model.")  
+        print(response.text) 
     if verbose:
         print(response.usage_metadata.prompt_token_count)
         print(response.usage_metadata.candidates_token_count)
 
+def generate_content(client, messages, verbose):
+    response = client.models.generate_content(
+        model="gemini-2.5-flash-lite",
+        contents=messages,
+    )
+    if not response.usage_metadata:
+        raise RuntimeError("Gemini API response appears to be malformed")
+
+    if verbose:
+        print("Prompt tokens:", response.usage_metadata.prompt_token_count)
+        print("Response tokens:", response.usage_metadata.candidates_token_count)
+    print("Response:")
+    print(response.text)
+
 if __name__ == "__main__":    
-   # main()
-   print(get_file_content("calculator", "test.py"))
+    main()
    

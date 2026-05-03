@@ -6,6 +6,10 @@ def test_get_files_info():
     # Test with a valid directory
     result = get_files_info("calculator")
     assert "main.py" in result  
+    
+    result = get_files_info(".")
+    print(result)
+    assert "main.py" in result  
 
     # Test with a subdirectory
     result = get_files_info("calculator", "pkg")
@@ -56,7 +60,7 @@ def test_run_python_file():
     # Test running a valid Python file
     result = run_python_file("calculator", "main.py", args=["3 + 5"])
     print(result)
-    assert "Successfully executed" in result
+    assert "8" in result
 
     # Test running a Python file outside the working directory
     result = run_python_file("calculator", "../main.py")
