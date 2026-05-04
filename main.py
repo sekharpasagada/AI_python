@@ -10,6 +10,7 @@ from functions.write_file import write_file,schema_write_file
 from functions.run_python_file import run_python_file,schema_run_python_file
 from prompts import system_prompt
 from call_function import call_function
+from config import MAX_ITERATIONS
 def main():
     # Load environment variables from .env file
     load_dotenv()
@@ -46,23 +47,25 @@ def main():
         types.Content(role="user", parts=[types.Part(text=prompt)]),
         ]
     config=types.GenerateContentConfig(system_instruction=system_prompt,tools=[available_functions])
-    response = client.models.generate_content(model="gemini-2.5-flash-lite", contents=messages,config=config, )
-
-
     
-
-
-    if response.function_calls:
-        print("Function calls made by the model:")
-        for call in response.function_calls:
-          result = call_function(call, verbose)
-          print(f"Result of {call.name}: {result}")
-    else:
-        print("No function calls were made by the model.")  
-        print(response.text) 
-    if verbose:
-        print(response.usage_metadata.prompt_token_count)
-        print(response.usage_metadata.candidates_token_count)
+    
+    for i in range(MAX_ITERATIONS):
+        response = client.models.generate_content(model="gemini-2.5-flash-lite", contents=messages,config=config, )
+        if response.candidates:
+            for candidate in response.candidates:
+                if candidate is None or candidate.content is None:
+                    continue
+                messages.append(candidate.content)
+        if response.function_calls:
+            for call in response.function_calls:
+                result = call_function(call, verbose)
+                messages.append(result)
+        else:
+            print(response.text) 
+            return
+        if verbose:
+            print(response.usage_metadata.prompt_token_count)
+            print(response.usage_metadata.candidates_token_count)
 
 def generate_content(client, messages, verbose):
     response = client.models.generate_content(

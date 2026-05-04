@@ -1,4 +1,3 @@
-
 class Calculator:
     def __init__(self):
         self.operators = {
@@ -8,10 +7,10 @@ class Calculator:
             "/": lambda a, b: a / b,
         }
         self.precedence = {
-            "+": 1,
-            "-": 1,
-            "*": 2,
-            "/": 2,
+            "+": 1,  # Lower precedence for addition
+            "-": 1,  # Lower precedence for subtraction
+            "*": 2,  # Higher precedence for multiplication
+            "/": 2,  # Higher precedence for division
         }
 
     def evaluate(self, expression):
